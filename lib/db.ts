@@ -7,7 +7,7 @@ const globalForDb = globalThis as unknown as {
 
 export const db =
   globalForDb.db ??
-  new Database(path.join(process.cwd(), "data.db"))
+  new Database(path.join(process.cwd(), "data.db"), { timeout: 10000 })
 
 if (process.env.NODE_ENV !== "production") globalForDb.db = db
 
