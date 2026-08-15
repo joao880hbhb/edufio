@@ -12,7 +12,12 @@ export const db =
 if (process.env.NODE_ENV !== "production") globalForDb.db = db
 
 export function migrate() {
-  db.pragma("journal_mode = WAL")
+  try {
+    db.pragma("journal_mode = WAL")
+  } catch {
+    // WAL switch needs an exclusive lock that can race when multiple
+    // processes (e.g. build workers) open a fresh DB at once. Safe to skip.
+  }
   db.pragma("foreign_keys = ON")
 
   db.exec(`
