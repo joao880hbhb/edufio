@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import ScheduleForm from "@/components/forms/ScheduleForm"
+import Calendar from "@/components/calendar/Calendar"
 import StepLayout from "@/components/layout/StepLayout"
 import { getRegistration, getSessions } from "@/lib/registrations"
 import { toIsoDate } from "@/lib/date"
@@ -19,17 +19,20 @@ export default async function PilihTanggalPage({
     redirect(`/ringkasan/${id}`)
   }
 
+  const nextIndex = sessions.length + 1
+
   return (
     <StepLayout
       title="Pilih Tanggal"
       subtitle={`${registration.nama_siswa} • ${registration.program} • ${registration.durasi_per_sesi} menit/sesi`}
     >
-      <ScheduleForm
+      <p className="mb-4 text-sm font-medium">
+        Sesi ke-{nextIndex} dari {registration.jumlah_sesi} sesi terjadwal
+      </p>
+      <Calendar
         registrationId={id}
-        totalSessions={registration.jumlah_sesi}
-        currentSessions={sessions.length}
-        sessionDates={sessions.map((s) => s.tanggal)}
         todayIso={toIsoDate(new Date())}
+        sessionDates={sessions.map((s) => s.tanggal)}
       />
     </StepLayout>
   )

@@ -1,18 +1,15 @@
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import BottomBar from "@/components/layout/BottomBar"
+import { notFound, redirect } from "next/navigation"
 import DetailForm from "@/components/forms/DetailForm"
 import StepLayout from "@/components/layout/StepLayout"
-import {
-  firstSessionNeedingDetail,
-  getRegistration,
-  getSessions,
-} from "@/lib/registrations"
+import { getRegistration, getSessions, getSessionsByDate } from "@/lib/registrations"
+import { toIsoDate } from "@/lib/date"
 
 export default async function DetailSesiPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ registrationId: string }>
+  searchParams: Promise<{ tanggal?: string }>
 }) {
   const { registrationId } = await params
   const id = Number(registrationId)
@@ -20,42 +17,32 @@ export default async function DetailSesiPage({
   if (!registration) notFound()
 
   const sessions = getSessions(id)
-  const session = firstSessionNeedingDetail(id)
-
-  if (!session) {
-    return (
-      <StepLayout
-        title="Detail Sesi"
-        subtitle={registration.nama_siswa}
-        progress={{ current: sessions.length, total: sessions.length }}
-      >
-        <p className="text-sm text-zinc-600">
-          Detail semua sesi sudah lengkap. Lanjut ke ringkasan pendaftaran.
-        </p>
-        <BottomBar>
-          <Link
-            href={`/ringkasan/${id}`}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-zinc-900 text-sm font-medium text-white"
-          >
-            Lihat Ringkasan
-          </Link>
-        </BottomBar>
-      </StepLayout>
-    )
+  if (sessions.length >= registration.jumlah_sesi) {
+    redirect(`/ringkasan/${id}`)
   }
 
-  const index = sessions.findIndex((s) => s.id === session.id) + 1
+  const { tanggal } = await searchParams
+  if (!tanggal || !/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) redirect(`/pilih-tanggal/${id}`)
+  const min = new Date()
+  min.setDate(min.getDate() + 3)
+  if (tanggal < toIsoDate(min)) redirect(`/pilih-tanggal/${id}`)
+  if (sessions.some((s) => s.tanggal === tanggal)) redirect(`/pilih-tanggal/${id}`)
+
+  const occupied = getSessionsByDate(tanggal).map((s) => ({
+    jam_mulai: s.jam_mulai,
+    jam_selesai: s.jam_selesai,
+  }))
 
   return (
     <StepLayout
       title="Detail Sesi"
-      subtitle={registration.nama_siswa}
-      progress={{ current: index, total: sessions.length }}
+      subtitle={`${registration.nama_siswa} • ${tanggal}`}
     >
       <DetailForm
-        sessionId={session.id}
         registrationId={id}
-        label={`Sesi ke-${index}: ${session.tanggal} ${session.jam_mulai}–${session.jam_selesai}`}
+        tanggal={tanggal}
+        durasiMenit={registration.durasi_per_sesi}
+        occupied={occupied}
       />
     </StepLayout>
   )

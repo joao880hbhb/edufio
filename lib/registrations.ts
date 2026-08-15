@@ -32,6 +32,15 @@ export interface NewRegistration {
   mode_belajar: ModeBelajar
 }
 
+export interface NewSession {
+  registration_id: number
+  tanggal: string
+  jam_mulai: string
+  jam_selesai: string
+  tempat: string
+  materi: string
+}
+
 export function createRegistration(data: NewRegistration): number {
   const result = db
     .prepare(
@@ -54,45 +63,18 @@ export function getSessions(registrationId: number): Session[] {
     .all(registrationId) as Session[]
 }
 
-export function addSession(input: {
-  registrationId: number
-  tanggal: string
-  jam_mulai: string
-  jam_selesai: string
-}): number {
+export function getSessionsByDate(tanggal: string): Session[] {
+  return db
+    .prepare("SELECT * FROM sessions WHERE tanggal = ? ORDER BY jam_mulai")
+    .all(tanggal) as Session[]
+}
+
+export function insertSession(input: NewSession): number {
   const result = db
     .prepare(
-      `INSERT INTO sessions (registration_id, tanggal, jam_mulai, jam_selesai)
-       VALUES (@registrationId, @tanggal, @jam_mulai, @jam_selesai)`
+      `INSERT INTO sessions (registration_id, tanggal, jam_mulai, jam_selesai, tempat, materi)
+       VALUES (@registration_id, @tanggal, @jam_mulai, @jam_selesai, @tempat, @materi)`
     )
     .run(input)
   return Number(result.lastInsertRowid)
-}
-
-export function updateSessionDetail(
-  sessionId: number,
-  detail: { tempat: string; materi: string }
-): void {
-  db.prepare(
-    "UPDATE sessions SET tempat = @tempat, materi = @materi WHERE id = @id"
-  ).run({ id: sessionId, ...detail })
-}
-
-export function firstSessionNeedingDetail(registrationId: number): Session | undefined {
-  return db
-    .prepare(
-      `SELECT * FROM sessions
-       WHERE registration_id = ? AND (tempat = '' OR materi = '')
-       ORDER BY id
-       LIMIT 1`
-    )
-    .get(registrationId) as Session | undefined
-}
-
-export function addMinutesToTime(jam: string, minutes: number): string {
-  const [h, m] = jam.split(":").map(Number)
-  const total = h * 60 + m + minutes
-  const hh = String(Math.floor(total / 60) % 24).padStart(2, "0")
-  const mm = String(total % 60).padStart(2, "0")
-  return `${hh}:${mm}`
 }

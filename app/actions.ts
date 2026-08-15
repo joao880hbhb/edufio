@@ -2,16 +2,15 @@
 
 import { redirect } from "next/navigation"
 import {
-  addMinutesToTime,
-  addSession,
   createRegistration,
   getRegistration,
   getSessions,
-  updateSessionDetail,
+  getSessionsByDate,
+  insertSession,
   type ModeBelajar,
   type Program,
 } from "@/lib/registrations"
-import { toIsoDate } from "@/lib/date"
+import { addMinutesToTime, timesOverlap, toIsoDate } from "@/lib/date"
 
 export interface FormState {
   error?: string
@@ -58,58 +57,45 @@ export async function createRegistrationAction(
   redirect(`/pilih-tanggal/${id}`)
 }
 
-export async function addSessionAction(
+export async function createSessionDetailAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
   const registrationId = Number(formData.get("registration_id"))
-  const registration = getRegistration(registrationId)
-  if (!registration) return error("Registrasi tidak ditemukan.")
-
   const tanggal = first(formData, "tanggal")
   const jam_mulai = first(formData, "jam_mulai")
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return error("Tanggal tidak valid.")
-  if (!/^\d{2}:\d{2}$/.test(jam_mulai)) return error("Jam mulai tidak valid.")
-
-  const min = new Date()
-  min.setDate(min.getDate() + 3)
-  if (tanggal < toIsoDate(min))
-    return error("Tanggal minimal 3 hari dari hari ini.")
-
-  if (getSessions(registrationId).some((s) => s.tanggal === tanggal))
-    return error("Tanggal ini sudah terjadwal.")
-
-  const jam_selesai = addMinutesToTime(jam_mulai, registration.durasi_per_sesi)
-  addSession({ registrationId, tanggal, jam_mulai, jam_selesai })
-
-  const intent = first(formData, "intent")
-  const next =
-    intent === "detail"
-      ? `/detail-sesi/${registrationId}`
-      : `/pilih-tanggal/${registrationId}`
-  redirect(next)
-}
-
-export async function updateSessionDetailAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
-  const sessionId = Number(formData.get("session_id"))
-  const registrationId = Number(formData.get("registration_id"))
   const tempat = first(formData, "tempat")
   const materi = first(formData, "materi")
 
-  if (!getRegistration(registrationId)) return error("Registrasi tidak ditemukan.")
+  const registration = getRegistration(registrationId)
+  if (!registration) return error("Registrasi tidak ditemukan.")
+
+  const sessions = getSessions(registrationId)
+  if (sessions.length >= registration.jumlah_sesi) {
+    redirect(`/ringkasan/${registrationId}`)
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return error("Tanggal tidak valid.")
+  const min = new Date()
+  min.setDate(min.getDate() + 3)
+  if (tanggal < toIsoDate(min)) return error("Tanggal minimal 3 hari dari hari ini.")
+  if (sessions.some((s) => s.tanggal === tanggal))
+    return error("Tanggal ini sudah terjadwal untuk pendaftaran ini.")
+
+  if (!/^\d{2}:\d{2}$/.test(jam_mulai)) return error("Jam mulai tidak valid.")
   if (!tempat) return error("Tempat wajib diisi.")
   if (!materi) return error("Materi wajib diisi.")
 
-  updateSessionDetail(sessionId, { tempat, materi })
+  const jam_selesai = addMinutesToTime(jam_mulai, registration.durasi_per_sesi)
 
-  const intent = first(formData, "intent")
-  const next =
-    intent === "finish"
-      ? `/ringkasan/${registrationId}`
-      : `/detail-sesi/${registrationId}`
-  redirect(next)
+  const conflict = getSessionsByDate(tanggal).find((s) =>
+    timesOverlap(jam_mulai, jam_selesai, s.jam_mulai, s.jam_selesai)
+  )
+  if (conflict)
+    return error(`Jam bentrok dengan sesi lain: ${conflict.jam_mulai}–${conflict.jam_selesai}.`)
+
+  insertSession({ registration_id: registrationId, tanggal, jam_mulai, jam_selesai, tempat, materi })
+
+  const done = getSessions(registrationId).length >= registration.jumlah_sesi
+  redirect(done ? `/ringkasan/${registrationId}` : `/pilih-tanggal/${registrationId}`)
 }
