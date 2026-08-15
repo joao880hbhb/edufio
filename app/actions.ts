@@ -6,10 +6,12 @@ import {
   addSession,
   createRegistration,
   getRegistration,
+  getSessions,
   updateSessionDetail,
   type ModeBelajar,
   type Program,
 } from "@/lib/registrations"
+import { toIsoDate } from "@/lib/date"
 
 export interface FormState {
   error?: string
@@ -69,6 +71,14 @@ export async function addSessionAction(
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return error("Tanggal tidak valid.")
   if (!/^\d{2}:\d{2}$/.test(jam_mulai)) return error("Jam mulai tidak valid.")
+
+  const min = new Date()
+  min.setDate(min.getDate() + 3)
+  if (tanggal < toIsoDate(min))
+    return error("Tanggal minimal 3 hari dari hari ini.")
+
+  if (getSessions(registrationId).some((s) => s.tanggal === tanggal))
+    return error("Tanggal ini sudah terjadwal.")
 
   const jam_selesai = addMinutesToTime(jam_mulai, registration.durasi_per_sesi)
   addSession({ registrationId, tanggal, jam_mulai, jam_selesai })
