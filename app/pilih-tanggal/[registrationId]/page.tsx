@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation"
-import Calendar from "@/components/calendar/Calendar"
 import StepLayout from "@/components/layout/StepLayout"
 import { getRegistration, getSessions } from "@/lib/registrations"
 import { toIsoDate } from "@/lib/date"
+import PilihTanggalClient from "./PilihTanggalClient"
 
 export default async function PilihTanggalPage({
   params,
@@ -10,27 +10,26 @@ export default async function PilihTanggalPage({
   params: Promise<{ registrationId: string }>
 }) {
   const { registrationId } = await params
-  const id = Number(registrationId)
-  const registration = getRegistration(id)
+  const registration = await getRegistration(registrationId)
   if (!registration) notFound()
 
-  const sessions = getSessions(id)
+  const sessions = await getSessions(registrationId)
   if (sessions.length >= registration.jumlah_sesi) {
-    redirect(`/ringkasan/${id}`)
+    redirect(`/ringkasan/${registrationId}`)
   }
 
   const nextIndex = sessions.length + 1
+  const backUrl = sessions.length === 0 ? "/pendaftaran" : `/ringkasan/${registrationId}`
 
   return (
     <StepLayout
-      title="Pilih Tanggal"
-      subtitle={`${registration.nama_siswa} • ${registration.program} • ${registration.durasi_per_sesi} menit/sesi`}
+      step={2}
+      title="Pilih tanggal"
+      subtitle={`Sesi ke-${nextIndex} · ${sessions.length} dari ${registration.jumlah_sesi} sesi terjadwal`}
+      backUrl={backUrl}
     >
-      <p className="mb-4 text-sm font-medium">
-        Sesi ke-{nextIndex} dari {registration.jumlah_sesi} sesi terjadwal
-      </p>
-      <Calendar
-        registrationId={id}
+      <PilihTanggalClient
+        registrationId={registrationId}
         todayIso={toIsoDate(new Date())}
         sessionDates={sessions.map((s) => s.tanggal)}
       />

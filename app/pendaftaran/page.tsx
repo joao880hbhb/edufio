@@ -3,7 +3,7 @@ import RegistrationForm from "@/components/forms/RegistrationForm"
 
 export default function PendaftaranPage() {
   return (
-    <StepLayout title="Pendaftaran" subtitle="Lengkapi data siswa dan pilih paket belajar">
+    <StepLayout step={1} title="Pendaftaran" subtitle="data paket les">
       <RegistrationForm />
     </StepLayout>
   )

@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F9FAFD; /* Putih kebiruan */
+  --foreground: #242829; /* Hampir hitam */
+  --edufio-teal: #026C7A;
+  --edufio-navy: #004153;
+  --edufio-teal-light: #3BB0BF;
+  --edufio-blue-pastel: #99DFEC;
+  --edufio-yellow: #FBC84F;
+  --edufio-gray-light: #E3E3E4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-edufio-teal: var(--edufio-teal);
+  --color-edufio-navy: var(--edufio-navy);
+  --color-edufio-teal-light: var(--edufio-teal-light);
+  --color-edufio-blue-pastel: var(--edufio-blue-pastel);
+  --color-edufio-yellow: var(--edufio-yellow);
+  --color-edufio-gray-light: var(--edufio-gray-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Custom select styling */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* Remove transition from everything that shouldn't animate */
+input, textarea, button, a, select {
+  transition-property: background-color, border-color, color, opacity, box-shadow, transform;
+  transition-duration: 150ms;
 }
